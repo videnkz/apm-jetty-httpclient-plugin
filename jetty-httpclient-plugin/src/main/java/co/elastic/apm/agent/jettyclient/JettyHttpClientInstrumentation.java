@@ -1,6 +1,7 @@
 package co.elastic.apm.agent.jettyclient;
 
 import co.elastic.apm.agent.jettyclient.helper.SpanResponseCompleteListenerWrapper;
+import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;
 import co.elastic.apm.api.Transaction;
@@ -13,13 +14,15 @@ import org.eclipse.jetty.client.api.Response;
 
 import javax.annotation.Nullable;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.namedOneOf;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
-public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumentation {
+public class JettyHttpClientInstrumentation extends ElasticApmInstrumentation {
     @Override
     public ElementMatcher<? super TypeDescription> getTypeMatcher() {
         return named("org.eclipse.jetty.client.HttpClient");
@@ -35,6 +38,11 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
     @Override
     public String getAdviceClassName() {
         return "co.elastic.apm.agent.jettyclient.JettyHttpClientInstrumentation$JettyHttpClientAdvice";
+    }
+
+    @Override
+    public Collection<String> getInstrumentationGroupNames() {
+        return Arrays.asList("http-client", "jetty-client");
     }
 
     public static class JettyHttpClientAdvice {
@@ -55,6 +63,8 @@ public class JettyHttpClientInstrumentation extends AbstractJettyClientInstrumen
                     requestHost = uri.getHost();
                 }
                 ret.setName(request.getMethod() + " " + requestHost);
+                ret.setDestinationService(requestHost + ":" + request.getPort());
+                ret.setDestinationAddress(requestHost, request.getPort());
                 ret.activate();
                 ret.injectTraceHeaders((headerName, headerValue) -> request.header(headerName, headerValue));
                 responseListeners.add(new SpanResponseCompleteListenerWrapper(ret));

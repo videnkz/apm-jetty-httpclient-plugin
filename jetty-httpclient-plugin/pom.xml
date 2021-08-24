@@ -6,7 +6,7 @@
     <parent>
         <artifactId>apm-jetty-httpclient-plugin</artifactId>
         <groupId>com.kananindzya.elastic.apm</groupId>
-        <version>0.1</version>
+        <version>0.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

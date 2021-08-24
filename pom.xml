@@ -6,7 +6,7 @@
 
     <groupId>com.kananindzya.elastic.apm</groupId>
     <artifactId>apm-jetty-httpclient-plugin</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -43,6 +43,7 @@
                 <groupId>co.elastic.apm</groupId>
                 <artifactId>apm-agent-plugin-sdk</artifactId>
                 <version>${elastic.apm.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>co.elastic.apm</groupId>
@@ -53,11 +54,13 @@
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-client</artifactId>
                 <version>${jettyclient.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>${codebugs.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
