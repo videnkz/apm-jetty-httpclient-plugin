@@ -1,6 +1,6 @@
-package co.elastic.apm.agent.jettyclient;
+package co.elastic.apm.agent.jettyclient.plugin;
 
-import co.elastic.apm.agent.jettyclient.helper.SpanResponseCompleteListenerWrapper;
+import co.elastic.apm.agent.jettyclient.plugin.helper.SpanResponseCompleteListenerWrapper;
 import co.elastic.apm.agent.sdk.ElasticApmInstrumentation;
 import co.elastic.apm.api.ElasticApm;
 import co.elastic.apm.api.Span;

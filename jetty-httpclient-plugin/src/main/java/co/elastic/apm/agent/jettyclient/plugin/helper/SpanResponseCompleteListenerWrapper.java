@@ -1,4 +1,4 @@
-package co.elastic.apm.agent.jettyclient.helper;
+package co.elastic.apm.agent.jettyclient.plugin.helper;
 
 import co.elastic.apm.api.Outcome;
 import co.elastic.apm.api.Span;

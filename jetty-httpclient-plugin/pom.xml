@@ -3,55 +3,131 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>apm-jetty-httpclient-plugin</artifactId>
-        <groupId>com.kananindzya.elastic.apm</groupId>
-        <version>0.2</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
 
+    <groupId>com.kananindzya.elastic.apm</groupId>
     <artifactId>jetty-httpclient-plugin</artifactId>
+    <version>0.2</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <jettyclient.version>11.0.6</jettyclient.version>
+        <elastic.apm.version>1.42.0</elastic.apm.version>
+        <codebugs.version>3.0.2</codebugs.version>
+    </properties>
 
     <dependencies>
+        <!-- The Elastic APM Java Agent Plugin SDK is needed to add instrumentation -->
         <dependency>
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-plugin-sdk</artifactId>
+            <version>${elastic.apm.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>co.elastic.apm</groupId>
             <artifactId>apm-agent-api</artifactId>
+            <version>${elastic.apm.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-client</artifactId>
+            <version>${jettyclient.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
+            <version>${codebugs.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- Testing using JUnit -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.8.2</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testing uses the Elastic APM Java Agent -->
+        <dependency>
+            <groupId>co.elastic.apm</groupId>
+            <artifactId>apm-agent-attach</artifactId>
+            <version>${elastic.apm.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- The neighbouring application project is what is being tested -->
+        <dependency>
+            <groupId>com.kananindzya.elastic.apm</groupId>
+            <artifactId>application</artifactId>
+            <version>0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- The mock APM server provides JSON structured information -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.13.2.2</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.0</version>
+            </plugin>
+            <!-- Tests *IT.java will be executed AFTER the jar is created - this is necessary -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.22.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Should maintain 1.8 compatibility
+             but this uses HttpClient which is JDK 11+ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <!-- Needed for the agent plugin: one jar only which includes all dependencies -->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>single</goal>
                         </goals>
                         <configuration>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.bytebuddy</pattern>
-                                    <shadedPattern>co.elastic.apm.agent.shaded.bytebuddy</shadedPattern>
-                                </relocation>
-                            </relocations>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
                         </configuration>
                     </execution>
                 </executions>
