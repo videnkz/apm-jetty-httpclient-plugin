@@ -9,20 +9,35 @@
     <version>0.2</version>
     <packaging>pom</packaging>
 
+    <name>Elastic APM Java Agent Jetty HttpClient Plugin</name>
+
+    <inceptionYear>2023</inceptionYear>
+
+    <description>Elastic APM Java Agent Jetty HttpClient Plugin</description>
+    <url>https://github.com/videnkz/apm-jetty-httpclient-plugin</url>
+
     <licenses>
         <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
-    <scm>
-        <url>https://github.com/videnkz/apm-jetty-httpclient-plugin</url>
-        <connection>scm:git:https://github.com/videnkz/apm-jetty-httpclient-plugin.git</connection>
-        <developerConnection>scm:git:https://github.com/videnkz/apm-jetty-httpclient-plugin.git</developerConnection>
-        <tag>HEAD</tag>
-    </scm>
+    <developers>
+        <developer>
+            <id>videnkz</id>
+            <name>Nugusbayev Kanagat</name>
+            <email>nugusbayevk@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <timezone>6</timezone>
+        </developer>
+    </developers>
+
+    <prerequisites>
+        <maven>3.8.8</maven>
+    </prerequisites>
 
     <modules>
         <module>jetty-httpclient-plugin</module>
