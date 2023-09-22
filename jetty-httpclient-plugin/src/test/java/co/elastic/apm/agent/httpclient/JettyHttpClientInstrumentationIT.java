@@ -49,20 +49,46 @@ public class JettyHttpClientInstrumentationIT extends AbstractInstrumentationTes
     public static void stopServer() throws IOException, InterruptedException {
         assertEquals(executeRequest("exit").getFirst(), 200);
         Server.stop();
-        assertTimeoutPreemptively(Duration.ofSeconds(8), () -> {Server.blockUntilStopped();});
+        assertTimeoutPreemptively(Duration.ofSeconds(8), () -> {
+            Server.blockUntilStopped();
+        });
     }
 
     @Test
     public void testSyncInstrumentation() throws IOException, InterruptedException, TimeoutException {
         Pair<Integer, String> statusCode = executeRequest("sync");
         assertEquals(statusCode.getFirst(), 200);
-        assertEquals(statusCode.getSecond(), "sync:<A HREF=\"/sync\">sync</A><BR><A HREF=\"/async\">async</A><BR><A HREF=\"/exit\">exit</A><BR><A HREF=\"/\"></A><BR>");
+        assertEquals(statusCode.getSecond(), "HelloWorld");
 
-        JsonNode transaction = ApmServer.getAndRemoveTransaction(0, 1000);
-        assertNotNull(transaction);
+        assertTransactionAndSpan(1000);
+    }
+
+    @Test
+    public void testAsyncInstrumentation() throws IOException, InterruptedException, TimeoutException {
+        Pair<Integer, String> statusCode = executeRequest("async");
+        assertEquals(statusCode.getFirst(), 200);
+        assertEquals(statusCode.getSecond(), "HelloWorld");
+
+        assertTransactionAndSpan(10000);
+    }
+
+    private void assertTransactionAndSpan(long timeoutInMillis) throws TimeoutException {
+        JsonNode transaction = ApmServer.getAndRemoveTransaction(0, timeoutInMillis);
+        assertNotNull(transaction, "http jdk server instrumentation should creates transaction");
+
+        JsonNode jettyRequestSpan = ApmServer.getAndRemoveSpan(0, 1000);
+        assertNotNull(jettyRequestSpan, "Span should be exist");
+        assertEquals("GET example.com", jettyRequestSpan.get("name").textValue(), "Span name should be set properly");
+        assertEquals("success", jettyRequestSpan.get("outcome").textValue(), "Span outcome should be success");
+        JsonNode spanContext = jettyRequestSpan.get("context");
+        assertEquals("http", spanContext.get("service").get("target").get("type").textValue(), "Service's target type should be `http` type");
+        JsonNode spanDestination = spanContext.get("destination");
+        assertEquals("example.com", spanDestination.get("address").textValue(), "Address should contain called domain");
+        assertEquals(443, spanDestination.get("port").intValue(), "`Port` field should captured properly.");
     }
 
     private static Pair<Integer, String> executeRequest(String req) throws IOException, InterruptedException {
+        System.out.println("Trying to get request " + req);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + PORT + "/" + req))
                 .GET()

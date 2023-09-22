@@ -1,13 +1,18 @@
 package co.elastic.apm.base;
 
 import co.elastic.apm.agent.jettyclient.plugin.JettyHttpClientInstrumentation;
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Transaction;
 import co.elastic.apm.attach.ElasticApmAttacher;
 import co.elastic.apm.mock.MockApmServer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AbstractInstrumentationTest {
@@ -30,11 +35,12 @@ public class AbstractInstrumentationTest {
         setProperty("elastic.apm.metrics_interval", "1s"); //flush metrics quickly - inadvisably short outside tests
 
         setProperty("elastic.apm.log_level", "DEBUG");
+        List<String> jettyClientInstrumentationGroup = new ArrayList<>(new JettyHttpClientInstrumentation().getInstrumentationGroupNames());
+        jettyClientInstrumentationGroup.remove("http-client");
         //Setting this makes the agent startup faster
-        String instrumentations = "jdk-httpserver, " + String.join(", ",
-                new JettyHttpClientInstrumentation().getInstrumentationGroupNames());
+        String instrumentations = "jdk-httpserver, public-api, " + String.join(", ", jettyClientInstrumentationGroup);
         setProperty("elastic.apm.enable_instrumentations", instrumentations);
-
+        setProperty("elastic.apm.disable_metrics", "true");
         //Start the agent
         ElasticApmAttacher.attach();
     }
@@ -43,6 +49,12 @@ public class AbstractInstrumentationTest {
     public static void stopApmServerAndResetProperties() {
         resetProperties();
         ApmServer.stop();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        Transaction transaction = ElasticApm.currentTransaction();
+        transaction.end();
     }
 
     public static void setProperty(String name, String value) {

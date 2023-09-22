@@ -15,20 +15,21 @@ public class SpanResponseCompleteListenerWrapper implements Response.CompleteLis
 
     @Override
     public void onComplete(Result result) {
-        if (span != null) {
-            try {
-                Response response = result.getResponse();
-                Throwable t = result.getFailure();
-                if (t != null) {
-                    span.setOutcome(Outcome.FAILURE);
-                }
-                if (response != null && t == null) {
-                    span.setOutcome(Outcome.SUCCESS);
-                }
-                span.captureException(t);
-            } finally {
-                span.end();
+        if (span == null) {
+            return;
+        }
+        try {
+            Response response = result.getResponse();
+            Throwable t = result.getFailure();
+            if (t != null) {
+                span.setOutcome(Outcome.FAILURE);
             }
+            if (response != null && t == null) {
+                span.setOutcome(Outcome.SUCCESS);
+            }
+            span.captureException(t);
+        } finally {
+            span.end();
         }
     }
 }

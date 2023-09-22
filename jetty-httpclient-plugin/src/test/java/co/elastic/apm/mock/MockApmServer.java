@@ -47,6 +47,8 @@ public class MockApmServer {
     private final List<JsonNode> transactions = new ArrayList<>();
     private final List<JsonNode> metricsets = new ArrayList<>();
 
+    private final List<JsonNode> spans = new ArrayList<>();
+
     /**
      * A count of the number of transactions received and not yet removed
      * @return the number of transactions received and not yet removed
@@ -76,6 +78,7 @@ public class MockApmServer {
         long elapsedTime = 0;
         while (elapsedTime < timeOutInMillis) {
             synchronized (transactions) {
+                System.out.println("Transactions size " + transactions.size());
                 if (transactions.size() > i) {
                     break;
                 }
@@ -98,6 +101,39 @@ public class MockApmServer {
             return transactions.remove(i);
         }
     }
+
+    public JsonNode getAndRemoveSpan(int i, long timeOutInMillis) throws TimeoutException {
+        //because the agent writes to the server asynchronously,
+        //any transaction created in a client is not here immediately
+        System.out.println("Spans size " + spans.size());
+
+        long start = System.currentTimeMillis();
+        long elapsedTime = 0;
+        while (elapsedTime < timeOutInMillis) {
+            synchronized (spans) {
+                if (spans.size() > i) {
+                    break;
+                }
+                if (timeOutInMillis-elapsedTime > 0) {
+                    try {
+                        spans.wait(timeOutInMillis - elapsedTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                elapsedTime = System.currentTimeMillis() - start;
+            }
+        }
+        synchronized (spans) {
+            if (spans.size() <= i) {
+                throw new TimeoutException("The apm server does not have a span at index " + i);
+            }
+        }
+        synchronized (spans) {
+            return spans.remove(i);
+        }
+    }
+
 
     public JsonNode popMetricset(long timeOutInMillis) throws TimeoutException {
         //because the agent writes to the server asynchronously,
@@ -179,10 +215,10 @@ public class MockApmServer {
         private void reportTransactionsAndMetrics(String json) {
             String[] lines = json.split("[\r\n]");
             for (String line: lines) {
-                reportTransactionOrMetric(line);
+                reportTransactionOrMetricOrSPan(line);
             }
         }
-        private void reportTransactionOrMetric(String line) {
+        private void reportTransactionOrMetricOrSPan(String line) {
             System.out.println("MockApmServer reading JSON objects: "+ line);
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode messageRootNode = null;
@@ -200,6 +236,13 @@ public class MockApmServer {
                     synchronized (metricsets) {
                         metricsets.add(metricsetNode);
                         metricsets.notify();
+                    }
+                }
+                JsonNode spanNode = messageRootNode.get("span");
+                if (spanNode != null) {
+                    synchronized (spans) {
+                        spans.add(spanNode);
+                        spans.notify();
                     }
                 }
             } catch (JsonProcessingException e) {

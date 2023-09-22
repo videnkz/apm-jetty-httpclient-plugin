@@ -1,5 +1,8 @@
 package com.kananindzya.elastic.apm.example.webserver;
 
+import co.elastic.apm.api.CaptureTransaction;
+import co.elastic.apm.api.ElasticApm;
+import co.elastic.apm.api.Scope;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -10,6 +13,7 @@ import org.eclipse.jetty.client.api.Result;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -24,7 +28,6 @@ import java.util.concurrent.TimeoutException;
  */
 public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
     private static volatile HttpServer TheServerInstance;
-    private static String TheServerRootPage;
     private HttpServer thisServer;
 
     @Override
@@ -44,20 +47,13 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
         client.start();
 
         MyHttpHandler[] handlers = new MyHttpHandler[]{
-                new SyncHandler(client), new AsyncHandler(client),
-                new ExitHandler(), new RootHandler(), //order matters
+                new SyncHandler(client), new AsyncHandler(client), new ExitHandler(), //order matters
         };
-        StringBuffer sb = new StringBuffer();
         for (MyHttpHandler httpHandler : handlers) {
-            sb.append("<A HREF=\"")
-                    .append(httpHandler.getContext())
-                    .append("\">")
-                    .append(httpHandler.getContext().substring(1))
-                    .append("</A><BR>");
             thisServer.createContext(httpHandler.getContext(), httpHandler);
         }
-        TheServerRootPage = sb.toString();
         System.out.println("com.kananindzya.elastic.apm.example.webserver.ExampleAlreadyInstrumentedHttpServer: Starting new webservice on port " + thisServer.getAddress().getPort());
+        thisServer.setExecutor(null);
         thisServer.start();
         TheServerInstance = thisServer;
     }
@@ -75,7 +71,7 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
     public void blockUntilReady() {
         while (TheServerInstance == null) {
             try {
-                Thread.sleep(1L);
+                Thread.sleep(50L);
             } catch (InterruptedException e) {
                 // do nothing, just enter the next sleep
             }
@@ -86,7 +82,7 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
     public void blockUntilStopped() {
         while (TheServerInstance != null) {
             try {
-                Thread.sleep(1L);
+                Thread.sleep(100L);
             } catch (InterruptedException e) {
                 // do nothing, just enter the next sleep
             }
@@ -121,15 +117,17 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
             return "/sync";
         }
 
+        @CaptureTransaction(value = "syncTransaction")
         public void myHandle(HttpExchange t) throws IOException, ExecutionException, InterruptedException, TimeoutException {
-            System.out.println("Started handle sync request.");
+            System.out.println("QSYNC# - start request");
+
             this.httpClient.GET("https://example.com");
-            String response = "sync:" + TheServerRootPage;
+            String response = "HelloWorld";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-            System.out.println("Ended handle sync request.");
+            System.out.println("QSYNC# - end request");
         }
     }
 
@@ -146,36 +144,25 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
             return "/async";
         }
 
-        public void myHandle(HttpExchange t) throws IOException {
+        public void myHandle(HttpExchange t) throws IOException, InterruptedException {
+            System.out.println("ASYNC# - start request");
+            CountDownLatch countDownLatch = new CountDownLatch(1);
             this.httpClient.newRequest("https://example.com")
                     .send(new Response.CompleteListener() {
                         @Override
                         public void onComplete(Result result) {
-                            System.out.println(result.getResponse().getStatus());
-                            System.out.println("Async request completed");
+                            // ignore
+                            countDownLatch.countDown();
+                            System.out.println("ASYNC# - got response");
                         }
                     });
-            String response = TheServerRootPage;
+            countDownLatch.await();
+            String response = "HelloWorld";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-        }
-    }
-
-
-    public static class RootHandler extends MyHttpHandler {
-        @Override
-        public String getContext() {
-            return "/";
-        }
-
-        public void myHandle(HttpExchange t) throws IOException {
-            String response = TheServerRootPage;
-            t.sendResponseHeaders(200, response.length());
-            OutputStream os = t.getResponseBody();
-            os.write(response.getBytes());
-            os.close();
+            System.out.println("ASYNC# - end request");
         }
     }
 
@@ -190,7 +177,7 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
 
         @Override
         public void myHandle(HttpExchange t) throws IOException {
-            String response = TheServerRootPage;
+            String response = "Exit";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());

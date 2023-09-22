@@ -37,7 +37,7 @@ public class JettyHttpClientInstrumentation extends ElasticApmInstrumentation {
 
     @Override
     public String getAdviceClassName() {
-        return "co.elastic.apm.agent.jettyclient.JettyHttpClientInstrumentation$JettyHttpClientAdvice";
+        return "co.elastic.apm.agent.jettyclient.plugin.JettyHttpClientInstrumentation$JettyHttpClientAdvice";
     }
 
     @Override
@@ -50,27 +50,21 @@ public class JettyHttpClientInstrumentation extends ElasticApmInstrumentation {
         @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)
         public static Object onBeforeSend(@Advice.Argument(0) Request request,
                                           @Advice.Argument(1) List<Response.ResponseListener> responseListeners) {
-            Transaction currentTransaction = ElasticApm.currentTransaction();
-            Span ret = null;
-            if (currentTransaction == null || request == null) {
-                return ret;
+            Transaction parent = ElasticApm.currentTransaction();
+            if (parent.getId().isEmpty() || request == null) {
+                return null;
             }
-            ret = currentTransaction.startExitSpan("external", "http", "");
-            if (ret != null) {
-                String requestHost = request.getHost();
-                if (requestHost == null) {
-                    URI uri = request.getURI();
-                    requestHost = uri.getHost();
-                }
-                ret.setName(request.getMethod() + " " + requestHost);
-                ret.setDestinationService(requestHost + ":" + request.getPort());
-                ret.setDestinationAddress(requestHost, request.getPort());
-                ret.activate();
-                ret.injectTraceHeaders((headerName, headerValue) -> request.header(headerName, headerValue));
-                responseListeners.add(new SpanResponseCompleteListenerWrapper(ret));
-            } else {
-                currentTransaction.injectTraceHeaders((headerName, headerValue) -> request.header(headerName, headerValue));
+            Span ret = parent.startExitSpan("external", "http", "");
+            String requestHost = request.getHost();
+            if (requestHost == null) {
+                URI uri = request.getURI();
+                requestHost = uri.getHost();
             }
+            ret.setName(request.getMethod() + " " + requestHost);
+            ret.setDestinationAddress(requestHost, request.getPort());
+            ret.injectTraceHeaders((headerName, headerValue) -> request.header(headerName, headerValue));
+            responseListeners.add(new SpanResponseCompleteListenerWrapper(ret));
+            ret.activate();
             return ret;
         }
 
