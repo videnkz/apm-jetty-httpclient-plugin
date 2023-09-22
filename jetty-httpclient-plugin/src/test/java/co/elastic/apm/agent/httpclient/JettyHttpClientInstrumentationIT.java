@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.kananindzya.elastic.apm.example.webserver.ExampleAlreadyInstrumentedHttpServer;
 import com.kananindzya.elastic.apm.example.webserver.ExampleHttpServer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,6 +18,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,8 +36,8 @@ public class JettyHttpClientInstrumentationIT extends AbstractInstrumentationTes
     protected static ExampleHttpServer Server;
     protected static HttpClient Client = HttpClient.newHttpClient();
 
-    @BeforeAll
-    public static void startServer() {
+    @BeforeEach
+    public void startServer() {
         Server = new ExampleAlreadyInstrumentedHttpServer();
         new Thread(() -> {
             try {
@@ -45,8 +53,8 @@ public class JettyHttpClientInstrumentationIT extends AbstractInstrumentationTes
         PORT = Server.getLocalPort();
     }
 
-    @AfterAll
-    public static void stopServer() throws IOException, InterruptedException {
+    @AfterEach
+    public void stopServer() throws IOException, InterruptedException, ExecutionException {
         assertEquals(executeRequest("exit").getFirst(), 200);
         Server.stop();
         assertTimeoutPreemptively(Duration.ofSeconds(8), () -> {
@@ -54,22 +62,14 @@ public class JettyHttpClientInstrumentationIT extends AbstractInstrumentationTes
         });
     }
 
-    @Test
-    public void testSyncInstrumentation() throws IOException, InterruptedException, TimeoutException {
-        Pair<Integer, String> statusCode = executeRequest("sync");
+    @ParameterizedTest
+    @ValueSource(strings = {"sync", "async"})
+    public void testAsyncInstrumentation(String requestPath) throws IOException, InterruptedException, TimeoutException, ExecutionException {
+        Pair<Integer, String> statusCode = executeRequest(requestPath);
         assertEquals(statusCode.getFirst(), 200);
         assertEquals(statusCode.getSecond(), "HelloWorld");
 
         assertTransactionAndSpan(1000);
-    }
-
-    @Test
-    public void testAsyncInstrumentation() throws IOException, InterruptedException, TimeoutException {
-        Pair<Integer, String> statusCode = executeRequest("async");
-        assertEquals(statusCode.getFirst(), 200);
-        assertEquals(statusCode.getSecond(), "HelloWorld");
-
-        assertTransactionAndSpan(10000);
     }
 
     private void assertTransactionAndSpan(long timeoutInMillis) throws TimeoutException {
@@ -87,15 +87,19 @@ public class JettyHttpClientInstrumentationIT extends AbstractInstrumentationTes
         assertEquals(443, spanDestination.get("port").intValue(), "`Port` field should captured properly.");
     }
 
-    private static Pair<Integer, String> executeRequest(String req) throws IOException, InterruptedException {
+    private static Pair<Integer, String> executeRequest(String req) throws IOException, InterruptedException, ExecutionException {
         System.out.println("Trying to get request " + req);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + PORT + "/" + req))
-                .GET()
-                .build();
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        Future<Pair<Integer, String>> future = executorService.submit(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:" + PORT + "/" + req))
+                    .GET()
+                    .build();
 
-        HttpResponse<String> response = Client.send(request, HttpResponse.BodyHandlers.ofString());
-        return new Pair<>(response.statusCode(), response.body());
+            HttpResponse<String> response = Client.send(request, HttpResponse.BodyHandlers.ofString());
+            return new Pair<>(response.statusCode(), response.body());
+        });
+        return future.get();
     }
 
 }

@@ -1,8 +1,6 @@
 package com.kananindzya.elastic.apm.example.webserver;
 
-import co.elastic.apm.api.CaptureTransaction;
-import co.elastic.apm.api.ElasticApm;
-import co.elastic.apm.api.Scope;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -117,7 +115,6 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
             return "/sync";
         }
 
-        @CaptureTransaction(value = "syncTransaction")
         public void myHandle(HttpExchange t) throws IOException, ExecutionException, InterruptedException, TimeoutException {
             System.out.println("QSYNC# - start request");
 
