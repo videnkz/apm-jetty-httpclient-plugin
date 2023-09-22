@@ -9,90 +9,39 @@
     <version>0.2</version>
     <packaging>pom</packaging>
 
+    <name>Elastic APM Java Agent Jetty HttpClient Plugin</name>
+
+    <inceptionYear>2023</inceptionYear>
+
+    <description>Elastic APM Java Agent Jetty HttpClient Plugin</description>
+    <url>https://github.com/videnkz/apm-jetty-httpclient-plugin</url>
+
     <licenses>
         <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
-    <scm>
-        <url>https://github.com/kananindzya/apm-jetty-httpclient-plugin</url>
-        <connection>scm:git:https://github.com/kananindzya/apm-jetty-httpclient-plugin.git</connection>
-        <developerConnection>scm:git:https://github.com/kananindzya/apm-jetty-httpclient-plugin.git</developerConnection>
-        <tag>HEAD</tag>
-    </scm>
+    <developers>
+        <developer>
+            <id>videnkz</id>
+            <name>Nugusbayev Kanagat</name>
+            <email>nugusbayevk@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <timezone>6</timezone>
+        </developer>
+    </developers>
+
+    <prerequisites>
+        <maven>3.8.8</maven>
+    </prerequisites>
 
     <modules>
         <module>jetty-httpclient-plugin</module>
+        <module>application</module>
     </modules>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <jettyclient.version>11.0.6</jettyclient.version>
-        <elastic.apm.version>1.25.0</elastic.apm.version>
-        <codebugs.version>3.0.2</codebugs.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>co.elastic.apm</groupId>
-                <artifactId>apm-agent-plugin-sdk</artifactId>
-                <version>${elastic.apm.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>co.elastic.apm</groupId>
-                <artifactId>apm-agent-api</artifactId>
-                <version>${elastic.apm.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-client</artifactId>
-                <version>${jettyclient.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.code.findbugs</groupId>
-                <artifactId>jsr305</artifactId>
-                <version>${codebugs.version}</version>
-                <scope>provided</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.4</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-        <plugins>
-            <plugin>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireMavenVersion>
-                                    <version>3.6.3</version>
-                                </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>
