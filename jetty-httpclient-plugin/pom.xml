@@ -107,7 +107,13 @@
                 <executions>
                     <execution>
                         <id>default-jar</id>
-                        <phase>none</phase>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}-${project.version}-sources</finalName>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
