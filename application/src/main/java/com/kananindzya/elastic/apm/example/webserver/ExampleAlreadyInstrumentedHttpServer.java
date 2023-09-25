@@ -116,15 +116,12 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
         }
 
         public void myHandle(HttpExchange t) throws IOException, ExecutionException, InterruptedException, TimeoutException {
-            System.out.println("QSYNC# - start request");
-
             this.httpClient.GET("https://example.com");
             String response = "HelloWorld";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-            System.out.println("QSYNC# - end request");
         }
     }
 
@@ -142,7 +139,6 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
         }
 
         public void myHandle(HttpExchange t) throws IOException, InterruptedException {
-            System.out.println("ASYNC# - start request");
             CountDownLatch countDownLatch = new CountDownLatch(1);
             this.httpClient.newRequest("https://example.com")
                     .send(new Response.CompleteListener() {
@@ -150,7 +146,6 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
                         public void onComplete(Result result) {
                             // ignore
                             countDownLatch.countDown();
-                            System.out.println("ASYNC# - got response");
                         }
                     });
             countDownLatch.await();
@@ -159,7 +154,6 @@ public class ExampleAlreadyInstrumentedHttpServer implements ExampleHttpServer {
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-            System.out.println("ASYNC# - end request");
         }
     }
 
